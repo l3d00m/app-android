@@ -38,8 +38,8 @@ class Tools {
     static final String TAG_TITLE = "title";
     static final String TAG_DESCRIPTION = "description";
     static final String TAG_CHUILDUUIDS = "childUUIDs";
-    static final String TAG_DATA = "data";
-    static final String TAG_TUPLES = "tuples";
+    static final String TAG_DATA = "values";
+    static final String TAG_TUPLES = "werte";
     static final String TAG_BELONGSTOGROUP = "belongsToGroup";
     static final String TAG_MIN = "min";
     static final String TAG_MAX = "max";

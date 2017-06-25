@@ -80,7 +80,7 @@ public class Preferences extends PreferenceActivity {
 
     @Override
     public void onBackPressed() {
-        // just for to know that preferences was maybe changed, resulting in possibility to reload data
+        // just for to know that preferences was maybe changed, resulting in possibility to reload values
         Intent intent = new Intent();
         setResult(RESULT_OK, intent);
         super.onBackPressed();

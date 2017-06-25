@@ -130,7 +130,7 @@ public class ChartDetails extends Activity {
         TimeSeries mCurrentSeries = Tools.getTimeSeries(myContext, uUID);
         //skip empty series
         if (mCurrentSeries.getItemCount() <= 1) {
-            //no data or out of time range
+            //no values or out of time range
             return;
         }
         String localMTitle = Tools.getPropertyOfChannel(myContext, uUID, Tools.TAG_TITLE);
@@ -691,7 +691,7 @@ public class ChartDetails extends Activity {
                     uRLUUIDs = "&uuid[]=" + mUUID;
                 }
 
-                url = url + "/data.json?from=" + Tools.f.format(from) + "&to=" + Tools.f.format(to) + "&tuples=" + tuples + uRLUUIDs + urlExtension;
+                url = url + "/values.json?from=" + Tools.f.format(from) + "&to=" + Tools.f.format(to) + "&werte=" + tuples + uRLUUIDs + urlExtension;
                 Log.d("CahrtDetails", "request url is: " + url);
 
                 String uname = sharedPref.getString("username", "");
@@ -710,7 +710,7 @@ public class ChartDetails extends Activity {
                 fehlerAusgabe = jsonStr;
             } else {
 
-                // store all data stuff in a shared preference
+                // store all values stuff in a shared preference
                 getApplicationContext().getSharedPreferences("JSONChannelPrefs", Activity.MODE_PRIVATE).edit().putString("JSONChannelsData", jsonStr).commit();
 
                 JSONObject jsonObj;
@@ -721,12 +721,12 @@ public class ChartDetails extends Activity {
                         JSONObject c = werte.getJSONObject(l);
                         if (c.has(Tools.TAG_TUPLES)) {
                             JSONArray tuples = c.getJSONArray(Tools.TAG_TUPLES);
-                            // at least one with tuples
+                            // at least one with werte
                             JSONFehler = false;
                             break;
                         } else {
                             JSONFehler = true;
-                            fehlerAusgabe = "no tuples data";
+                            fehlerAusgabe = "no werte values";
                         }
                     }
 

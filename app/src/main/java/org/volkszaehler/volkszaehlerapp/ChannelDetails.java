@@ -283,7 +283,7 @@ public class ChannelDetails extends Activity {
             ServiceHandler sh = new ServiceHandler();
             SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(ChannelDetails.this);
             String url = sharedPref.getString("volkszaehlerURL", "");
-            String urlDef = url + "/data/" + mUUID + ".json?from=0&tuples=1&group=day";
+            String urlDef = url + "/values/" + mUUID + ".json?from=0&werte=1&group=day";
 
             String uname = sharedPref.getString("username", "");
             String pwd = sharedPref.getString("password", "");

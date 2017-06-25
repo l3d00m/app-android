@@ -1,101 +1,101 @@
 package org.volkszaehler.volkszaehlerapp;
 
-import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.ListActivity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
-import android.widget.ListView;
-import android.widget.SimpleAdapter;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+import org.volkszaehler.volkszaehlerapp.adapter.CustomAdapter;
+import org.volkszaehler.volkszaehlerapp.generic.Channel;
+import org.volkszaehler.volkszaehlerapp.presenter.MainActivityPresenter;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Locale;
+import java.util.List;
 
-public class MainActivity<ViewGroup> extends ListActivity {
+@SuppressWarnings("Convert2streamapi")
+public class MainActivity extends AppCompatActivity {
     private static Context myContext;
     // Hashmaps for ListView
-    private final ArrayList<HashMap<String, String>> channelValueList = new ArrayList<>();
+    private final List<Channel> channels = new ArrayList<>();
     private String jsonStr = "";
     private Button refreshButton;
     private ProgressDialog pDialog;
-    private SimpleAdapter adapter = null;
     private boolean bAutoReload = false;
     private String channelsToRequest = "";
+    private MainActivityPresenter presenter;
+
+    private CustomAdapter adapter;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
+        }
+
         myContext = this;
         addListenerOnButton();
-        ListView lv = getListView();
-        lv.setOnItemClickListener(new OnItemClickListener() {
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                HashMap<String, String> map = channelValueList.get(position);
 
-                Intent in = new Intent(getApplicationContext(), ChannelDetails.class);
-                in.putExtra("tuplesWert", map.get("tuplesWert"));
-                in.putExtra(Tools.TAG_UUID, map.get(Tools.TAG_UUID));
-                in.putExtra("tuplesZeit", map.get("tuplesZeit"));
-
-                startActivity(in);
-            }
-        });
         if (savedInstanceState != null) {
             jsonStr = savedInstanceState.getString("JSONStr");
             channelsToRequest = savedInstanceState.getString("ChannelsToRequest");
         }
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+        String url = sharedPref.getString("volkszaehlerURL", "") + "/";
+
+        presenter = new MainActivityPresenter(url, this); //fixme
+        setupRecyclerView();
+
+        presenter.loadChannelMeta(getChannelsToShow());
+    }
+
+    private void setupRecyclerView() {
+        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.list);
+        adapter = new CustomAdapter(channels, this);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setAdapter(adapter);
+    }
+
+    private List<String> getChannelsToShow() {
+        List<String> channels = new ArrayList<>();
+        channelsToRequest = "";
+        jsonStr = "";
+        // adding uuids that are checked in preferences
+        for (String preference : PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getAll().keySet()) {
+            // assume its a UUID of a channel
+            if (preference.contains("-") && preference.length() == 36) {
+                // is preference checked?
+                if (PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getBoolean(preference, false)) {
+                    channels.add(preference);
+                    channelsToRequest = channelsToRequest + "&uuid[]=" + preference;
+                }
+            }
+        }
+        return channels;
     }
 
     private void addListenerOnButton() {
         refreshButton = (Button) findViewById(R.id.buttonRefresh);
 
-        refreshButton.setOnClickListener(new OnClickListener() {
-
-            @Override
-            public void onClick(View arg0) {
-                channelValueList.clear();
-                // setAdapter(null);
-
-                if (adapter != null) {
-                    adapter.notifyDataSetChanged();
-                }
-                jsonStr = "";
-                channelsToRequest = "";
-                // adding uuids that are checked in preferences
-                for (String preference : PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getAll().keySet()) {
-                    // assume its a UUID of a channel
-                    if (preference.contains("-") && preference.length() == 36) {
-                        // is preference checked?
-                        if (PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getBoolean(preference, false)) {
-                            channelsToRequest = channelsToRequest + "&uuid[]=" + preference;
-
-                        }
-                    }
-                }
-                new GetJSONData().execute(channelsToRequest);
-            }
+        refreshButton.setOnClickListener(arg0 -> {
+            getChannelsToShow();
+            presenter.loadChannelData(this.channels);
         });
     }
 
@@ -104,12 +104,7 @@ public class MainActivity<ViewGroup> extends ListActivity {
         super.onResume();
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
         bAutoReload = sharedPref.getBoolean("autoReload", false);
-        if (bAutoReload) {
-            refreshButton.performClick();
-        } else if (!jsonStr.equals("")) {
-            channelValueList.clear();
-            new GetJSONData().execute(channelsToRequest);
-        }
+        //fixme refreshButton.performClick();
     }
 
     @Override
@@ -152,53 +147,13 @@ public class MainActivity<ViewGroup> extends ListActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void addValuesToListView() {
-        /**
-         * Updating parsed JSON data into ListView
-         * */
-        adapter = new SimpleAdapter(MainActivity.this, channelValueList, R.layout.list_item, new String[]{Tools.TAG_TITLE, Tools.TAG_DESCRIPTION, "tuplesWert"}, new int[]{R.id.channelName,
-                R.id.channelDescription, R.id.channelValue}) {
-            @Override
-            public View getView(int position, View convertView, android.view.ViewGroup parent) {
-
-                View view = super.getView(position, convertView, parent);
-
-                HashMap<String, String> items = (HashMap<String, String>) getListView().getItemAtPosition(position);
-
-                //empty color, default = blue
-                String col = "".equals(items.get(Tools.TAG_COLOR)) ? "#0000FF" : items.get(Tools.TAG_COLOR);
-
-                if (col.startsWith("#")) {
-                    ((TextView) view.findViewById(R.id.channelName)).setTextColor(Color.parseColor(col.toUpperCase(Locale.getDefault())));
-                    ((TextView) view.findViewById(R.id.channelValue)).setTextColor(Color.parseColor(col.toUpperCase(Locale.getDefault())));
-                }
-                // Workarounds for non existing Colors on S4Mini 4.2.2
-                else if (col.equals("teal")) {
-                    ((TextView) view.findViewById(R.id.channelName)).setTextColor(getResources().getColor(R.color.teal));
-                    ((TextView) view.findViewById(R.id.channelValue)).setTextColor(getResources().getColor(R.color.teal));
-                } else if (col.equals("aqua")) {
-                    ((TextView) view.findViewById(R.id.channelName)).setTextColor(getResources().getColor(R.color.aqua));
-                    ((TextView) view.findViewById(R.id.channelValue)).setTextColor(getResources().getColor(R.color.aqua));
-                } else {
-                    try {
-                        ((TextView) view.findViewById(R.id.channelName)).setTextColor(Color.parseColor(col));
-                        ((TextView) view.findViewById(R.id.channelValue)).setTextColor(Color.parseColor(col));
-                    } catch (IllegalArgumentException e) {
-                        Log.e("MainActivity", "Error setting color " + e.getMessage());
-                    }
-                }
-                return view;
-            }
-        };
-        setListAdapter(adapter);
-    }
 
     protected void onSaveInstanceState(Bundle outState) {
         outState.putString("JSONStr", jsonStr);
         outState.putString("ChannelsToRequest", channelsToRequest);
     }
 
-    private class GetJSONData extends AsyncTask<String, Void, Void> {
+    /*private class GetJSONData extends AsyncTask<String, Void, Void> {
 
         boolean JSONFehler = false;
         String fehlerAusgabe = "";
@@ -264,7 +219,7 @@ public class MainActivity<ViewGroup> extends ListActivity {
                                 Log.d("MainActivity", "uRLUUIDs only one Child: " + uRLUUIDs);
                             }
                         }
-                        //fix Exception "Getting data is not supported for groups", remove group UUID
+                        //fix Exception "Getting values is not supported for groups", remove group UUID
                         uRLUUIDs = uRLUUIDs.replace("&uuid[]=" + aChannelsAusParameterMitLeerstring, "");
                     }
                 }
@@ -290,7 +245,7 @@ public class MainActivity<ViewGroup> extends ListActivity {
                     String url = sharedPref.getString("volkszaehlerURL", "");
 
                     long millisNow = System.currentTimeMillis();
-                    url = url + "/data.json?from=now" + uRLUUIDs;
+                    url = url + "/values.json?from=now" + uRLUUIDs;
 
                     Log.d("MainActivity: ", "url: " + url);
 
@@ -412,5 +367,24 @@ public class MainActivity<ViewGroup> extends ListActivity {
             }
 
         }
+    }*/
+
+    public void loadingChannelValuesSuccess(List<Channel> values) {
+        channels.clear();
+        channels.addAll(values);
+        adapter.notifyDataSetChanged();
+    }
+
+    public void loadingChannelInfosSuccess(List<Channel> channels) {
+        Log.e("SUCCESS", "loaded channel info"); //fixme("remove")
+        presenter.loadChannelData(channels);
+    }
+
+    public void adapterFailedCallback(String errorMessage) {
+        new AlertDialog.Builder(MainActivity.this)
+                .setTitle(getString(R.string.Error))
+                .setMessage(errorMessage)
+                .setNeutralButton(getString(R.string.Close), null)
+                .show();
     }
 }
