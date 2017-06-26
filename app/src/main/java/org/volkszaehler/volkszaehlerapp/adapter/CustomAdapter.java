@@ -34,15 +34,16 @@ public class CustomAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     }
 
     @Override
+
     public void onBindViewHolder(RecyclerView.ViewHolder holder_, int position) {
         CustomViewHolder holder = (CustomViewHolder) holder_;
         Channel currentItem = items.get(position);
 
         holder.channelName.setText(currentItem.getTitle());
-        holder.channelDesc.setText(currentItem.getType());
+        holder.channelDesc.setText(currentItem.getType().toString());
         holder.channelValue.setText(Float.toString(currentItem.getWert()));
 
-        String col = (currentItem.getColor() != null && currentItem.getColor().isEmpty()) ? currentItem.getColor() : "#0000FF";
+        String col = (currentItem.getColor() == null || currentItem.getColor().isEmpty()) ? "#0000FF" : currentItem.getColor();
 
         if (col.startsWith("#")) {
             holder.channelName.setTextColor(Color.parseColor(col.toUpperCase(Locale.getDefault())));

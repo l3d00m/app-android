@@ -26,7 +26,7 @@ import java.util.Locale;
 
 public class ChannelDetails extends Activity {
 
-    private static Context myContext;
+    private Context myContext;
     private String mUUID = "";
     private ProgressDialog pDialog;
     private String unit;
@@ -72,15 +72,9 @@ public class ChannelDetails extends Activity {
         //empty color, default = blue
         String col = "".equals(Tools.getPropertyOfChannel(myContext, mUUID, "color")) ? "blue" : Tools.getPropertyOfChannel(myContext, mUUID, "color");
 
-        int cColor;
-        if (col != null && col.startsWith("#")) {
-            cColor = Color.parseColor(col.toUpperCase(Locale.getDefault()));
-            ((TextView) findViewById(R.id.textViewTitle)).setTextColor(cColor);
-            ((TextView) findViewById(R.id.textViewValue)).setTextColor(cColor);
-            findViewById(R.id.editTextChannelDetails).setBackgroundColor(cColor);
-        } else {
+        if (col != null) {
             try {
-                cColor = Color.parseColor(col.toUpperCase(Locale.getDefault()));
+                int cColor = Color.parseColor(col.toUpperCase(Locale.US));
                 ((TextView) findViewById(R.id.textViewTitle)).setTextColor(cColor);
                 ((TextView) findViewById(R.id.textViewValue)).setTextColor(cColor);
                 findViewById(R.id.editTextChannelDetails).setBackgroundColor(cColor);
@@ -283,7 +277,7 @@ public class ChannelDetails extends Activity {
             ServiceHandler sh = new ServiceHandler();
             SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(ChannelDetails.this);
             String url = sharedPref.getString("volkszaehlerURL", "");
-            String urlDef = url + "/values/" + mUUID + ".json?from=0&werte=1&group=day";
+            String urlDef = url + "/data/" + mUUID + ".json?from=0&werte=1&group=day";
 
             String uname = sharedPref.getString("username", "");
             String pwd = sharedPref.getString("password", "");

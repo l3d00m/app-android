@@ -40,38 +40,34 @@ public class Preferences extends PreferenceActivity {
         // Preference button = (Preference)findPreference("");
         Preference button = getPreferenceManager().findPreference("getChannelsButton");
         if (button != null) {
-            button.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
-                @Override
-                public boolean onPreferenceClick(Preference arg0) {
-
-                    // obviously the only way to remove old dynamic preferences
-                    // is prefs.edit().clear().commit(); but it removes also
-                    // other preferences
-                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                    // so hold them in a variable
-                    url = prefs.getString("volkszaehlerURL", "");
-                    uname = prefs.getString("username", "");
-                    pwd = prefs.getString("password", "");
-                    boolean bZeroBased = prefs.getBoolean("ZeroBasedYAxis", false);
-                    boolean bAutoReload = prefs.getBoolean("autoReload", false);
-                    tuples = prefs.getString("Tuples", "1000");
-                    privateChannelString = prefs.getString("privateChannelUUIDs", "");
+            button.setOnPreferenceClickListener(pref -> {
+                // obviously the only way to remove old dynamic preferences
+                // is prefs.edit().clear().commit(); but it removes also
+                // other preferences
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                // so hold them in a variable
+                url = prefs.getString("volkszaehlerURL", "");
+                uname = prefs.getString("username", "");
+                pwd = prefs.getString("password", "");
+                boolean bZeroBased = prefs.getBoolean("ZeroBasedYAxis", false);
+                boolean bAutoReload = prefs.getBoolean("autoReload", false);
+                tuples = prefs.getString("Tuples", "1000");
+                privateChannelString = prefs.getString("privateChannelUUIDs", "");
 
 
-                    // remove all
-                    prefs.edit().clear().commit();
-                    // and put back
-                    prefs.edit().putString("volkszaehlerURL", url).commit();
-                    prefs.edit().putString("username", uname).commit();
-                    prefs.edit().putString("password", pwd).commit();
-                    prefs.edit().putBoolean("ZeroBasedYAxis", bZeroBased).commit();
-                    prefs.edit().putBoolean("autoReload", bAutoReload).commit();
-                    prefs.edit().putString("Tuples", tuples).commit();
-                    prefs.edit().putString("privateChannelUUIDs", privateChannelString).commit();
-                    // call Channels from VZ installation
-                    new GetChannels().execute();
-                    return true;
-                }
+                // remove all
+                prefs.edit().clear().commit();
+                // and put back
+                prefs.edit().putString("volkszaehlerURL", url).commit();
+                prefs.edit().putString("username", uname).commit();
+                prefs.edit().putString("password", pwd).commit();
+                prefs.edit().putBoolean("ZeroBasedYAxis", bZeroBased).commit();
+                prefs.edit().putBoolean("autoReload", bAutoReload).commit();
+                prefs.edit().putString("Tuples", tuples).commit();
+                prefs.edit().putString("privateChannelUUIDs", privateChannelString).commit();
+                // call Channels from VZ installation
+                new GetChannels().execute();
+                return true;
             });
         }
         // fill PreferenceScreen dynamically with new channels
@@ -80,7 +76,7 @@ public class Preferences extends PreferenceActivity {
 
     @Override
     public void onBackPressed() {
-        // just for to know that preferences was maybe changed, resulting in possibility to reload values
+        // just for to know that preferences was maybe changed, resulting in possibility to reload data
         Intent intent = new Intent();
         setResult(RESULT_OK, intent);
         super.onBackPressed();
@@ -193,7 +189,6 @@ public class Preferences extends PreferenceActivity {
             if (jsonStr.startsWith("Error: ") || jsonStrDef.startsWith("Error: ")) {
                 JSONFehler = true;
                 fehlerAusgabe = jsonStr + " | " + jsonStrDef;
-                ;
             } else {
                 try {
                     jsonStrObj = new JSONObject(jsonStr);

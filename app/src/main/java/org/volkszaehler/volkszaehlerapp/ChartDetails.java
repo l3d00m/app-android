@@ -691,7 +691,7 @@ public class ChartDetails extends Activity {
                     uRLUUIDs = "&uuid[]=" + mUUID;
                 }
 
-                url = url + "/values.json?from=" + Tools.f.format(from) + "&to=" + Tools.f.format(to) + "&werte=" + tuples + uRLUUIDs + urlExtension;
+                url = url + "/data.json?from=" + Tools.f.format(from) + "&to=" + Tools.f.format(to) + "&tuples=" + tuples + uRLUUIDs + urlExtension;
                 Log.d("CahrtDetails", "request url is: " + url);
 
                 String uname = sharedPref.getString("username", "");
@@ -710,7 +710,7 @@ public class ChartDetails extends Activity {
                 fehlerAusgabe = jsonStr;
             } else {
 
-                // store all values stuff in a shared preference
+                // store all data stuff in a shared preference
                 getApplicationContext().getSharedPreferences("JSONChannelPrefs", Activity.MODE_PRIVATE).edit().putString("JSONChannelsData", jsonStr).commit();
 
                 JSONObject jsonObj;
@@ -721,12 +721,12 @@ public class ChartDetails extends Activity {
                         JSONObject c = werte.getJSONObject(l);
                         if (c.has(Tools.TAG_TUPLES)) {
                             JSONArray tuples = c.getJSONArray(Tools.TAG_TUPLES);
-                            // at least one with werte
+                            // at least one with tuples
                             JSONFehler = false;
                             break;
                         } else {
                             JSONFehler = true;
-                            fehlerAusgabe = "no werte values";
+                            fehlerAusgabe = "no tuples data";
                         }
                     }
 

@@ -7,10 +7,10 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean bAutoReload = false;
     private String channelsToRequest = "";
     private MainActivityPresenter presenter;
+    private SwipeRefreshLayout refreshLayout;
 
     private CustomAdapter adapter;
 
@@ -49,7 +50,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         myContext = this;
-        addListenerOnButton();
 
         if (savedInstanceState != null) {
             jsonStr = savedInstanceState.getString("JSONStr");
@@ -60,6 +60,12 @@ public class MainActivity extends AppCompatActivity {
 
         presenter = new MainActivityPresenter(url, this); //fixme
         setupRecyclerView();
+
+        refreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipeContainer);
+        refreshLayout.setOnRefreshListener(() -> {
+            presenter.loadChannelData(channels);
+            if (refreshLayout != null) refreshLayout.setRefreshing(true);
+        });
 
         presenter.loadChannelMeta(getChannelsToShow());
     }
@@ -88,15 +94,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return channels;
-    }
-
-    private void addListenerOnButton() {
-        refreshButton = (Button) findViewById(R.id.buttonRefresh);
-
-        refreshButton.setOnClickListener(arg0 -> {
-            getChannelsToShow();
-            presenter.loadChannelData(this.channels);
-        });
     }
 
     @Override
@@ -219,7 +216,7 @@ public class MainActivity extends AppCompatActivity {
                                 Log.d("MainActivity", "uRLUUIDs only one Child: " + uRLUUIDs);
                             }
                         }
-                        //fix Exception "Getting values is not supported for groups", remove group UUID
+                        //fix Exception "Getting data is not supported for groups", remove group UUID
                         uRLUUIDs = uRLUUIDs.replace("&uuid[]=" + aChannelsAusParameterMitLeerstring, "");
                     }
                 }
@@ -245,7 +242,7 @@ public class MainActivity extends AppCompatActivity {
                     String url = sharedPref.getString("volkszaehlerURL", "");
 
                     long millisNow = System.currentTimeMillis();
-                    url = url + "/values.json?from=now" + uRLUUIDs;
+                    url = url + "/data.json?from=now" + uRLUUIDs;
 
                     Log.d("MainActivity: ", "url: " + url);
 
@@ -373,10 +370,10 @@ public class MainActivity extends AppCompatActivity {
         channels.clear();
         channels.addAll(values);
         adapter.notifyDataSetChanged();
+        if (refreshLayout != null) refreshLayout.setRefreshing(false);
     }
 
     public void loadingChannelInfosSuccess(List<Channel> channels) {
-        Log.e("SUCCESS", "loaded channel info"); //fixme("remove")
         presenter.loadChannelData(channels);
     }
 
@@ -386,5 +383,6 @@ public class MainActivity extends AppCompatActivity {
                 .setMessage(errorMessage)
                 .setNeutralButton(getString(R.string.Close), null)
                 .show();
+        if (refreshLayout != null) refreshLayout.setRefreshing(false);
     }
 }

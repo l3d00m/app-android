@@ -1,15 +1,16 @@
 package org.volkszaehler.volkszaehlerapp.generic;
 
+import org.volkszaehler.volkszaehlerapp.model.ChannelMetaResponse.Style;
+import org.volkszaehler.volkszaehlerapp.model.ChannelMetaResponse.Type;
+
 public class Channel {
     // Meta Info
     private String uuid;
-    private String type;
+    private Type type;
     private String color;
-    private Integer fillstyle;
-    private Boolean isPublic;
-    private String style;
+    private boolean isPublic;
+    private Style style;
     private String title;
-    private String yaxis;
 
     // ChannelValues
     private float maxWert;
@@ -18,49 +19,48 @@ public class Channel {
     private double average;
     private double consumption;
 
-
     public String getUuid() {
         return uuid;
-    }
-
-    public float getMaxWert() {
-        return maxWert;
-    }
-
-    public float getMinWert() {
-        return minWert;
-    }
-
-    public float getWert() {
-        return wert;
-    }
-
-    public double getAverage() {
-        return average;
-    }
-
-    public double getConsumption() {
-        return consumption;
     }
 
     public void setUuid(String uuid) {
         this.uuid = uuid;
     }
 
+    public float getMaxWert() {
+        return maxWert;
+    }
+
     public void setMaxWert(float maxWert) {
         this.maxWert = maxWert;
+    }
+
+    public float getMinWert() {
+        return minWert;
     }
 
     public void setMinWert(float minWert) {
         this.minWert = minWert;
     }
 
+    public float getWert() {
+        return wert;
+    }
+
     public void setWert(float wert) {
         this.wert = wert;
     }
 
+    public double getAverage() {
+        return average;
+    }
+
     public void setAverage(double average) {
         this.average = average;
+    }
+
+    public double getConsumption() {
+        return consumption;
     }
 
     public void setConsumption(double consumption) {
@@ -90,35 +90,27 @@ public class Channel {
         return result;
     }
 
-    public String getType() {
+    public Type getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(Type type) {
         this.type = type;
     }
 
-    public Integer getFillstyle() {
-        return fillstyle;
-    }
-
-    public void setFillstyle(Integer fillstyle) {
-        this.fillstyle = fillstyle;
-    }
-
-    public Boolean getPublic() {
+    public boolean getPublic() {
         return isPublic;
     }
 
-    public void setPublic(Boolean aPublic) {
+    public void setPublic(boolean aPublic) {
         isPublic = aPublic;
     }
 
-    public String getStyle() {
+    public Style getStyle() {
         return style;
     }
 
-    public void setStyle(String style) {
+    public void setStyle(Style style) {
         this.style = style;
     }
 
@@ -130,11 +122,4 @@ public class Channel {
         this.title = title;
     }
 
-    public String getYaxis() {
-        return yaxis;
-    }
-
-    public void setYaxis(String yaxis) {
-        this.yaxis = yaxis;
-    }
 }

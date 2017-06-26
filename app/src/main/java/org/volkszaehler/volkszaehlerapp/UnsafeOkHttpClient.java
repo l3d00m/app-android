@@ -10,6 +10,7 @@ import okhttp3.OkHttpClient;
 public abstract class UnsafeOkHttpClient {
     /**
      * Source: https://stackoverflow.com/a/25992879/4026792 (modified)
+     *
      * @return OkHttpClient.Builder that accepts unsecure SSL connections
      */
     public static OkHttpClient.Builder getUnsafeOkHttpClientBuilder() {

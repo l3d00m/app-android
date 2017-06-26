@@ -68,7 +68,7 @@ public class MainActivityPresenter {
         for (Channel info : channels) {
             uuidStrings.add(info.getUuid());
         }
-        apiInterface.getChannelData("now", uuidStrings, getAuth(mainActivity))
+        apiInterface.getChannelsData("now", uuidStrings, getAuth(mainActivity))
                 // Do the processing in background (async)
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io())
@@ -102,7 +102,7 @@ public class MainActivityPresenter {
     }
 
     public void loadChannelMeta(List<String> uuids) {
-        apiInterface.getChannelMeta(uuids, getAuth(mainActivity))
+        apiInterface.getChannelsMeta(uuids, getAuth(mainActivity))
                 // Do the processing in background (async)
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io())
@@ -114,11 +114,9 @@ public class MainActivityPresenter {
                     channel.setUuid(response.uuid);
                     channel.setType(response.type);
                     channel.setColor(response.color);
-                    channel.setFillstyle(response.fillstyle);
                     channel.setPublic(response.isPublic);
                     channel.setStyle(response.style);
                     channel.setTitle(response.title);
-                    channel.setYaxis(response.yaxis);
                     return channel;
                 })
                 .toList()
