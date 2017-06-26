@@ -12,7 +12,7 @@ public class ChannelMetaResponse {
     public String uuid;
 
     @SerializedName("type")
-    public Type type;
+    public String type;
 
     @SerializedName("color")
     public String color;

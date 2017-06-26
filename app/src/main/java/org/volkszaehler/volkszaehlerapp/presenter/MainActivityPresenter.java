@@ -11,10 +11,15 @@ import com.google.gson.GsonBuilder;
 import org.volkszaehler.volkszaehlerapp.MainActivity;
 import org.volkszaehler.volkszaehlerapp.WertDeserializer;
 import org.volkszaehler.volkszaehlerapp.generic.Channel;
+import org.volkszaehler.volkszaehlerapp.generic.Entity;
 import org.volkszaehler.volkszaehlerapp.model.ResponseWert;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -129,5 +134,37 @@ public class MainActivityPresenter {
                             e.printStackTrace();
                         });
 
+    }
+
+    private String getTranslation(HashMap<String, String> translations) {
+        String systemLocale = Locale.getDefault().getLanguage();
+        Iterator it = translations.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry) it.next();
+            if (systemLocale.equals(pair.getKey().toString())) {
+                return pair.getValue().toString();
+            }
+            it.remove(); // avoids a ConcurrentModificationException
+        }
+        return translations.get("en");
+    }
+
+    public void loadEntityDefinitions() {
+        apiInterface.getChannelDefinitions("")
+                .observeOn(Schedulers.io())
+                .subscribeOn(Schedulers.io())
+                .flatMapIterable(root -> root.capabilities.definitions.entities)
+                .map(entityResponse -> {
+                    Entity entity = new Entity();
+                    entity.setName(entityResponse.name);
+                    entity.setHasConsumption(entityResponse.hasConsumption);
+                    entity.setScale(entityResponse.scale);
+                    entity.setUnit(entityResponse.unit);
+                    entity.setStyle(entityResponse.style);
+                    entity.setFriendlyName(getTranslation(entityResponse.translations));
+                    return entity;
+                })
+                .toList()
+                .subscribe(list -> mainActivity.loadingEntitiesSuccess(list));
     }
 }

@@ -181,10 +181,6 @@ public class ChannelDetails extends Activity {
                 to = millisNow;
                 from = millisNow - 3600000;
                 break;
-            case "day":
-                to = millisNow;
-                from = millisNow - 86400000;
-                break;
             case "week":
                 to = millisNow;
                 from = millisNow - 604800000;
@@ -193,7 +189,7 @@ public class ChannelDetails extends Activity {
                 to = millisNow;
                 from = millisNow - 2419200000L;
                 break;
-
+            case "day":
             default:
                 to = millisNow;
                 from = millisNow - 86400000;
@@ -277,7 +273,7 @@ public class ChannelDetails extends Activity {
             ServiceHandler sh = new ServiceHandler();
             SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(ChannelDetails.this);
             String url = sharedPref.getString("volkszaehlerURL", "");
-            String urlDef = url + "/data/" + mUUID + ".json?from=0&werte=1&group=day";
+            String urlDef = url + "/data/" + mUUID + ".json?from=0&tuples=1&group=day";
 
             String uname = sharedPref.getString("username", "");
             String pwd = sharedPref.getString("password", "");

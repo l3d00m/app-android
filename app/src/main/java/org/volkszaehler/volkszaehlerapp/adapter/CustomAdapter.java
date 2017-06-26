@@ -13,6 +13,7 @@ import org.volkszaehler.volkszaehlerapp.ChannelDetails;
 import org.volkszaehler.volkszaehlerapp.MainActivity;
 import org.volkszaehler.volkszaehlerapp.R;
 import org.volkszaehler.volkszaehlerapp.generic.Channel;
+import org.volkszaehler.volkszaehlerapp.generic.Entity;
 
 import java.util.List;
 import java.util.Locale;
@@ -39,9 +40,28 @@ public class CustomAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         CustomViewHolder holder = (CustomViewHolder) holder_;
         Channel currentItem = items.get(position);
 
+        String unit = "";
+        String friendlyName = "";
+
+        for (Entity entity : context.entities) {
+            if (entity.getName().equals(currentItem.getType())) {
+                friendlyName = entity.getFriendlyName();
+                unit = entity.getUnit();
+            }
+        }
+
+        if (friendlyName != null && !friendlyName.isEmpty()) {
+            holder.channelDesc.setText(friendlyName);
+        } else {
+            holder.channelDesc.setText(currentItem.getType());
+        }
+        if (unit != null && !unit.isEmpty()) {
+            holder.channelValue.setText(Float.toString(currentItem.getWert()) + " " + unit);
+        } else {
+            holder.channelValue.setText(Float.toString(currentItem.getWert()));
+        }
+
         holder.channelName.setText(currentItem.getTitle());
-        holder.channelDesc.setText(currentItem.getType().toString());
-        holder.channelValue.setText(Float.toString(currentItem.getWert()));
 
         String col = (currentItem.getColor() == null || currentItem.getColor().isEmpty()) ? "#0000FF" : currentItem.getColor();
 

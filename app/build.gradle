@@ -34,6 +34,11 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.android.support:recyclerview-v7:25.3.1'
     compile 'com.android.support:design:25.3.1'
+    compile "android.arch.persistence.room:runtime:1.0.0-alpha3"
+    annotationProcessor "android.arch.persistence.room:compiler:1.0.0-alpha3"
+    compile "android.arch.persistence.room:rxjava2:1.0.0-alpha3"
+
+
     compile 'com.squareup.okhttp3:logging-interceptor:3.8.1'
 
     compile 'com.github.ddanny:achartengine:e49b62b'

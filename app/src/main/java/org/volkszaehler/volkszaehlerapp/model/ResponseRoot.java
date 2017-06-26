@@ -17,6 +17,10 @@ public class ResponseRoot {
     @Nullable
     public List<ChannelMetaResponse> infos;
 
+    @SerializedName("capabilities")
+    @Nullable
+    public CapabilitiesResponse capabilities;
+
     @SerializedName("exception")
     @Nullable
     public ResponseException exception;

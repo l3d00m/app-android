@@ -2,6 +2,7 @@ package org.volkszaehler.volkszaehlerapp;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.arch.persistence.room.Room;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -17,21 +18,27 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import org.volkszaehler.volkszaehlerapp.adapter.CustomAdapter;
+import org.volkszaehler.volkszaehlerapp.dao.AppDatabase;
 import org.volkszaehler.volkszaehlerapp.generic.Channel;
+import org.volkszaehler.volkszaehlerapp.generic.Entity;
 import org.volkszaehler.volkszaehlerapp.presenter.MainActivityPresenter;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import io.reactivex.schedulers.Schedulers;
 
 @SuppressWarnings("Convert2streamapi")
 public class MainActivity extends AppCompatActivity {
     private static Context myContext;
     // Hashmaps for ListView
     private final List<Channel> channels = new ArrayList<>();
+    public final List<Entity> entities = new ArrayList<>();
     private String jsonStr = "";
     private Button refreshButton;
     private ProgressDialog pDialog;
     private boolean bAutoReload = false;
+    private AppDatabase db;
     private String channelsToRequest = "";
     private MainActivityPresenter presenter;
     private SwipeRefreshLayout refreshLayout;
@@ -67,7 +74,17 @@ public class MainActivity extends AppCompatActivity {
             if (refreshLayout != null) refreshLayout.setRefreshing(true);
         });
 
-        presenter.loadChannelMeta(getChannelsToShow());
+        db = Room.databaseBuilder(getApplicationContext(),
+                AppDatabase.class, "app-databasee").build();
+        db.entityDao().getAll()
+                .observeOn(Schedulers.io())
+                .subscribeOn(Schedulers.io())
+                .subscribe((c) -> {
+                    entities.addAll(c);
+                    presenter.loadChannelMeta(getChannelsToShow());
+                });
+
+        refreshLayout.setRefreshing(true);
     }
 
     private void setupRecyclerView() {
@@ -375,6 +392,12 @@ public class MainActivity extends AppCompatActivity {
 
     public void loadingChannelInfosSuccess(List<Channel> channels) {
         presenter.loadChannelData(channels);
+    }
+
+    public void loadingEntitiesSuccess(List<Entity> entities) {
+        this.entities.addAll(entities);
+        presenter.loadChannelMeta(getChannelsToShow());
+        db.entityDao().insertAll(entities);
     }
 
     public void adapterFailedCallback(String errorMessage) {
