@@ -6,17 +6,15 @@ import java.util.List;
 
 public class ChannelValuesReponse {
     @SerializedName("tuples")
-    public List<ResponseWert> werte;
+    public List<ResponseValue> werte;
     @SerializedName("uuid")
     public String uuid;
     @SerializedName("min")
-    public ResponseWert minWerte;
+    public ResponseValue minWerte;
     @SerializedName("max")
-    public ResponseWert maxWerte;
+    public ResponseValue maxWerte;
     @SerializedName("average")
-    public Double average;
+    public double average;
     @SerializedName("consumption")
-    public Double consumption;
-    @SerializedName("rows")
-    public Integer rows;
+    public double consumption;
 }

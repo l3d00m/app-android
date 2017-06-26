@@ -1,22 +1,42 @@
 package org.volkszaehler.volkszaehlerapp.generic;
 
+import android.arch.persistence.room.Ignore;
+import android.arch.persistence.room.PrimaryKey;
+
 import org.volkszaehler.volkszaehlerapp.model.ChannelMetaResponse.Style;
 
+@android.arch.persistence.room.Entity
 public class Channel {
     // Meta Info
+    @PrimaryKey
     private String uuid;
+    private String description;
     private String type;
     private String color;
     private boolean isPublic;
+    @Ignore //fixme("remove ignore by using a custom type converter")
     private Style style;
     private String title;
+    private double cost;
+    private double resolution;
+    private double initialConsumption;
 
     // ChannelValues
-    private float maxWert;
-    private float minWert;
-    private float wert;
+    @Ignore
+    private double maxValue;
+    @Ignore
+    private double minValue;
+    @Ignore
+    private double value;
+    @Ignore
+    private long time;
+    @Ignore
     private double average;
+    @Ignore
     private double consumption;
+
+    public Channel() {
+    }
 
     public String getUuid() {
         return uuid;
@@ -26,28 +46,28 @@ public class Channel {
         this.uuid = uuid;
     }
 
-    public float getMaxWert() {
-        return maxWert;
+    public double getMaxValue() {
+        return maxValue;
     }
 
-    public void setMaxWert(float maxWert) {
-        this.maxWert = maxWert;
+    public void setMaxValue(double maxValue) {
+        this.maxValue = maxValue;
     }
 
-    public float getMinWert() {
-        return minWert;
+    public double getMinValue() {
+        return minValue;
     }
 
-    public void setMinWert(float minWert) {
-        this.minWert = minWert;
+    public void setMinValue(double minValue) {
+        this.minValue = minValue;
     }
 
-    public float getWert() {
-        return wert;
+    public double getValue() {
+        return value;
     }
 
-    public void setWert(float wert) {
-        this.wert = wert;
+    public void setValue(double value) {
+        this.value = value;
     }
 
     public double getAverage() {
@@ -121,4 +141,43 @@ public class Channel {
         this.title = title;
     }
 
+    public long getTime() {
+        return time;
+    }
+
+    public void setTime(long time) {
+        this.time = time;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public double getCost() {
+        return cost;
+    }
+
+    public void setCost(double cost) {
+        this.cost = cost;
+    }
+
+    public double getResolution() {
+        return resolution;
+    }
+
+    public void setResolution(double resolution) {
+        this.resolution = resolution;
+    }
+
+    public double getInitialConsumption() {
+        return initialConsumption;
+    }
+
+    public void setInitialConsumption(double initialConsumption) {
+        this.initialConsumption = initialConsumption;
+    }
 }

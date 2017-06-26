@@ -149,7 +149,7 @@ public class ChartDetails extends Activity {
         uUIDSOfaddedCharts.add(uUID);
         int mColor = Color.BLUE;
         try {
-            mColor = Color.parseColor(Tools.getPropertyOfChannel(myContext, uUID, Tools.TAG_COLOR).toUpperCase(Locale.getDefault()));
+            mColor = Color.parseColor(Tools.getPropertyOfChannel(myContext, uUID, Tools.TAG_COLOR).toUpperCase(Locale.US));
         } catch (Exception e) {
             Log.e("ChartDetails", e.getMessage());
         }

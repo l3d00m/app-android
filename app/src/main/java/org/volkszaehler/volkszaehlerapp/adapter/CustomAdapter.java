@@ -12,6 +12,7 @@ import android.view.ViewGroup;
 import org.volkszaehler.volkszaehlerapp.ChannelDetails;
 import org.volkszaehler.volkszaehlerapp.MainActivity;
 import org.volkszaehler.volkszaehlerapp.R;
+import org.volkszaehler.volkszaehlerapp.Tools;
 import org.volkszaehler.volkszaehlerapp.generic.Channel;
 import org.volkszaehler.volkszaehlerapp.generic.Entity;
 
@@ -43,22 +44,21 @@ public class CustomAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         String unit = "";
         String friendlyName = "";
 
-        for (Entity entity : context.entities) {
-            if (entity.getName().equals(currentItem.getType())) {
-                friendlyName = entity.getFriendlyName();
-                unit = entity.getUnit();
-            }
+        Entity entity = MainActivity.getEntity(currentItem.getType());
+        if (entity != null) {
+            friendlyName = entity.getFriendlyName();
+            unit = entity.getUnit();
         }
 
-        if (friendlyName != null && !friendlyName.isEmpty()) {
+        if (friendlyName != null) {
             holder.channelDesc.setText(friendlyName);
         } else {
             holder.channelDesc.setText(currentItem.getType());
         }
         if (unit != null && !unit.isEmpty()) {
-            holder.channelValue.setText(Float.toString(currentItem.getWert()) + " " + unit);
+            holder.channelValue.setText(Tools.f00.format(currentItem.getValue()) + " " + unit);
         } else {
-            holder.channelValue.setText(Float.toString(currentItem.getWert()));
+            holder.channelValue.setText(Tools.f00.format(currentItem.getValue()));
         }
 
         holder.channelName.setText(currentItem.getTitle());
@@ -86,9 +86,9 @@ public class CustomAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         }
         holder.channelContainer.setOnClickListener(v -> {
             Intent in = new Intent(context.getApplicationContext(), ChannelDetails.class);
-            in.putExtra("tuplesWert", currentItem.getUuid());
+            in.putExtra("tuplesValue", currentItem.getConsumption());
             in.putExtra("uuid", currentItem.getUuid());
-            //in.putExtra("tuplesZeit", map.get("tuplesZeit"));
+            in.putExtra("tuplesZeit", currentItem.getTime());
 
             context.startActivity(in);
         });

@@ -18,16 +18,16 @@ public class ChannelMetaResponse {
     public String color;
 
     @SerializedName("fillstyle")
-    public float fillstyle;
+    public double fillstyle;
 
     @SerializedName("resolution")
-    public float resolution;
+    public double resolution;
 
     @SerializedName("cost")
-    public float cost;
+    public double cost;
 
     @SerializedName("initialconsumption")
-    public float initialConsumption;
+    public double initialConsumption;
 
     @SerializedName("public")
     public boolean isPublic;

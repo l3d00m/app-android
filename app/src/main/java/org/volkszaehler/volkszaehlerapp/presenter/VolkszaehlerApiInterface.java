@@ -19,7 +19,7 @@ public interface VolkszaehlerApiInterface {
     Observable<ResponseRoot> getSingleChannelData(@Query("from") String from,
                                                   @Query("tuples") String tuples,
                                                   @Query("group") String group,
-                                                  @Query("uuid") List<String> uuids,
+                                                  @Query("uuid[]") String uuids,
                                                   @Header("Authorization") String auth);
 
     @GET("channel.json")

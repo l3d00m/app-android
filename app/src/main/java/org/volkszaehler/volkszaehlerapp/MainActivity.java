@@ -1,20 +1,19 @@
 package org.volkszaehler.volkszaehlerapp;
 
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.arch.persistence.room.Room;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.Nullable;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Button;
 import android.widget.Toast;
 
 import org.volkszaehler.volkszaehlerapp.adapter.CustomAdapter;
@@ -30,16 +29,12 @@ import io.reactivex.schedulers.Schedulers;
 
 @SuppressWarnings("Convert2streamapi")
 public class MainActivity extends AppCompatActivity {
-    private static Context myContext;
+    private Context myContext;
     // Hashmaps for ListView
-    private final List<Channel> channels = new ArrayList<>();
-    public final List<Entity> entities = new ArrayList<>();
-    private String jsonStr = "";
-    private Button refreshButton;
-    private ProgressDialog pDialog;
+    private static final List<Channel> channels = new ArrayList<>();
+    private static final List<Entity> entities = new ArrayList<>();
     private boolean bAutoReload = false;
     private AppDatabase db;
-    private String channelsToRequest = "";
     private MainActivityPresenter presenter;
     private SwipeRefreshLayout refreshLayout;
 
@@ -52,16 +47,12 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayHomeAsUpEnabled(false);
             getSupportActionBar().setDisplayShowHomeEnabled(true);
         }
 
         myContext = this;
 
-        if (savedInstanceState != null) {
-            jsonStr = savedInstanceState.getString("JSONStr");
-            channelsToRequest = savedInstanceState.getString("ChannelsToRequest");
-        }
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
         String url = sharedPref.getString("volkszaehlerURL", "") + "/";
 
@@ -76,15 +67,68 @@ public class MainActivity extends AppCompatActivity {
 
         db = Room.databaseBuilder(getApplicationContext(),
                 AppDatabase.class, "app-databasee").build();
+
+        loadEntitiesFromDb();
+        refreshLayout.setRefreshing(true);
+    }
+
+    private void loadEntitiesFromDb() {
         db.entityDao().getAll()
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io())
                 .subscribe((c) -> {
-                    entities.addAll(c);
-                    presenter.loadChannelMeta(getChannelsToShow());
+                    if (c.isEmpty()) {
+                        presenter.loadEntityDefinitions();
+                    } else {
+                        entities.addAll(c);
+                        loadChannelMetaFromDb();
+                    }
                 });
+    }
 
-        refreshLayout.setRefreshing(true);
+    @Nullable
+    public static Channel getChannel(String uuid) {
+        for (Channel channel : channels) {
+            if (channel.getUuid().equals(uuid)) {
+                return channel;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    public static Entity getEntity(String name) {
+        for (Entity entity : entities) {
+            if (entity.getName().equals(name)) {
+                return entity;
+            }
+        }
+        return null;
+    }
+
+    private void loadChannelMetaFromDb() {
+        db.channelMetaDao().getAll()
+                .observeOn(Schedulers.io())
+                .subscribeOn(Schedulers.io())
+                .subscribe((c) -> {
+                    if (c.isEmpty()) {
+                        presenter.loadChannelMeta(getChannelsToShow());
+                    } else {
+                        channels.addAll(c);
+                        presenter.loadChannelData(channels);
+                    }
+                });
+    }
+
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+    }
+
+    @Override
+    protected void onPause() {
+        presenter.clearRxSubscriptions();
+        super.onPause();
     }
 
     private void setupRecyclerView() {
@@ -97,8 +141,6 @@ public class MainActivity extends AppCompatActivity {
 
     private List<String> getChannelsToShow() {
         List<String> channels = new ArrayList<>();
-        channelsToRequest = "";
-        jsonStr = "";
         // adding uuids that are checked in preferences
         for (String preference : PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getAll().keySet()) {
             // assume its a UUID of a channel
@@ -106,7 +148,6 @@ public class MainActivity extends AppCompatActivity {
                 // is preference checked?
                 if (PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getBoolean(preference, false)) {
                     channels.add(preference);
-                    channelsToRequest = channelsToRequest + "&uuid[]=" + preference;
                 }
             }
         }
@@ -117,8 +158,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-        bAutoReload = sharedPref.getBoolean("autoReload", false);
-        //fixme refreshButton.performClick();
+        //fixme bAutoReload = sharedPref.getBoolean("autoReload", false);
     }
 
     @Override
@@ -159,12 +199,6 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-
-    protected void onSaveInstanceState(Bundle outState) {
-        outState.putString("JSONStr", jsonStr);
-        outState.putString("ChannelsToRequest", channelsToRequest);
     }
 
     /*private class GetJSONData extends AsyncTask<String, Void, Void> {

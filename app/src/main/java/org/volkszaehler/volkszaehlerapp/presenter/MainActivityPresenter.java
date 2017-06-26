@@ -9,10 +9,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import org.volkszaehler.volkszaehlerapp.MainActivity;
-import org.volkszaehler.volkszaehlerapp.WertDeserializer;
+import org.volkszaehler.volkszaehlerapp.ValueDeserializer;
 import org.volkszaehler.volkszaehlerapp.generic.Channel;
 import org.volkszaehler.volkszaehlerapp.generic.Entity;
-import org.volkszaehler.volkszaehlerapp.model.ResponseWert;
+import org.volkszaehler.volkszaehlerapp.model.ResponseValue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,9 +20,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -35,6 +37,7 @@ import static org.volkszaehler.volkszaehlerapp.UnsafeOkHttpClient.getUnsafeOkHtt
 public class MainActivityPresenter {
     private VolkszaehlerApiInterface apiInterface;
     private MainActivity mainActivity;
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     public MainActivityPresenter(String baseUrl, MainActivity mainActivity) {
         this.mainActivity = mainActivity;
@@ -45,7 +48,7 @@ public class MainActivityPresenter {
                 .build();
         // Create some custom deserializer for easier handling of the max and min values
         Gson gson = new GsonBuilder()
-                .registerTypeAdapter(ResponseWert.class, new WertDeserializer())
+                .registerTypeAdapter(ResponseValue.class, new ValueDeserializer())
                 .create();
         RxJava2CallAdapterFactory rxAdapter = RxJava2CallAdapterFactory.createWithScheduler(Schedulers.io());
         // Create a retrofit instance
@@ -56,6 +59,10 @@ public class MainActivityPresenter {
                 .addCallAdapterFactory(rxAdapter)
                 .build();
         apiInterface = retrofit.create(VolkszaehlerApiInterface.class);
+    }
+
+    public void clearRxSubscriptions() {
+        disposables.clear();
     }
 
     private static String getAuth(Context context) {
@@ -73,7 +80,7 @@ public class MainActivityPresenter {
         for (Channel info : channels) {
             uuidStrings.add(info.getUuid());
         }
-        apiInterface.getChannelsData("now", uuidStrings, getAuth(mainActivity))
+        disposables.add(apiInterface.getChannelsData("now", uuidStrings, getAuth(mainActivity))
                 // Do the processing in background (async)
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io())
@@ -86,15 +93,17 @@ public class MainActivityPresenter {
                             channel.setUuid(response.uuid);
                             channel.setAverage(response.average);
                             channel.setConsumption(response.consumption);
-                            channel.setMaxWert(response.maxWerte.wert);
-                            channel.setMinWert(response.minWerte.wert);
-                            channel.setWert(response.werte.get(0).wert);
+                            channel.setMaxValue(response.maxWerte.value);
+                            channel.setMinValue(response.minWerte.value);
+                            channel.setValue(response.werte.get(0).value);
+                            channel.setTime(response.werte.get(0).timestamp);
                             return Observable.just(channel);
                         }
                     }
                     return Observable.empty();
                 })
                 .toList()
+                .repeatWhen(completed -> completed.delay(3, TimeUnit.SECONDS))
                 // Switch back to main Thread for calling the MainActivity methods
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(AndroidSchedulers.mainThread())
@@ -102,12 +111,12 @@ public class MainActivityPresenter {
                         e -> {
                             mainActivity.adapterFailedCallback(e.getMessage());
                             e.printStackTrace();
-                        });
+                        }));
 
     }
 
     public void loadChannelMeta(List<String> uuids) {
-        apiInterface.getChannelsMeta(uuids, getAuth(mainActivity))
+        disposables.add(apiInterface.getChannelsMeta(uuids, getAuth(mainActivity))
                 // Do the processing in background (async)
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io())
@@ -118,10 +127,14 @@ public class MainActivityPresenter {
                     Channel channel = new Channel();
                     channel.setUuid(response.uuid);
                     channel.setType(response.type);
+                    channel.setCost(response.cost);
+                    channel.setResolution(response.resolution);
+                    channel.setInitialConsumption(response.initialConsumption);
                     channel.setColor(response.color);
                     channel.setPublic(response.isPublic);
                     channel.setStyle(response.style);
                     channel.setTitle(response.title);
+                    channel.setDescription(response.description);
                     return channel;
                 })
                 .toList()
@@ -132,7 +145,7 @@ public class MainActivityPresenter {
                         e -> {
                             mainActivity.adapterFailedCallback(e.getMessage());
                             e.printStackTrace();
-                        });
+                        }));
 
     }
 
@@ -150,21 +163,25 @@ public class MainActivityPresenter {
     }
 
     public void loadEntityDefinitions() {
-        apiInterface.getChannelDefinitions("")
+        disposables.add(apiInterface.getChannelDefinitions("")
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io())
-                .flatMapIterable(root -> root.capabilities.definitions.entities)
+                .map(root -> root.capabilities)
+                .flatMapIterable(capabilities -> capabilities.definitions.entities)
                 .map(entityResponse -> {
                     Entity entity = new Entity();
                     entity.setName(entityResponse.name);
                     entity.setHasConsumption(entityResponse.hasConsumption);
                     entity.setScale(entityResponse.scale);
                     entity.setUnit(entityResponse.unit);
-                    entity.setStyle(entityResponse.style);
                     entity.setFriendlyName(getTranslation(entityResponse.translations));
                     return entity;
                 })
                 .toList()
-                .subscribe(list -> mainActivity.loadingEntitiesSuccess(list));
+                .subscribe(list -> mainActivity.loadingEntitiesSuccess(list),
+                        e -> {
+                            mainActivity.adapterFailedCallback(e.getMessage());
+                            e.printStackTrace();
+                        }));
     }
 }
