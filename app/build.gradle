@@ -4,29 +4,27 @@ apply plugin: 'me.tatarka.retrolambda'
 android {
     compileSdkVersion 25
     buildToolsVersion '25.0.2'
-
     defaultConfig {
         applicationId "org.volkszaehler.volkszaehlerapp"
         minSdkVersion 14
         targetSdkVersion 25
     }
-
     compileOptions {
         encoding "UTF-8"
     }
-
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
     }
-
     useLibrary 'org.apache.http.legacy'
-
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+    }
+    lintOptions {
+        abortOnError false
     }
 }
 
@@ -34,19 +32,15 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.android.support:recyclerview-v7:25.3.1'
     compile 'com.android.support:design:25.3.1'
-    compile "android.arch.persistence.room:runtime:1.0.0-alpha3"
+    compile 'android.arch.persistence.room:runtime:1.0.0-alpha3'
     annotationProcessor "android.arch.persistence.room:compiler:1.0.0-alpha3"
-    compile "android.arch.persistence.room:rxjava2:1.0.0-alpha3"
-
-
-    compile 'com.squareup.okhttp3:logging-interceptor:3.8.1'
-
+    compile 'android.arch.persistence.room:rxjava2:1.0.0-alpha3'
     compile 'com.github.ddanny:achartengine:e49b62b'
-
     compile 'com.squareup.retrofit2:retrofit:2.3.0'
     compile 'com.squareup.retrofit2:converter-gson:2.3.0'
     compile 'com.squareup.retrofit2:adapter-rxjava2:2.3.0'
-
-    compile "io.reactivex.rxjava2:rxjava:2.1.1"
+    compile 'io.reactivex.rxjava2:rxjava:2.1.1'
     compile 'io.reactivex.rxjava2:rxandroid:2.0.1'
+    debugCompile 'com.facebook.stetho:stetho:1.5.0'
+    debugCompile 'com.facebook.stetho:stetho-okhttp3:1.5.0'
 }

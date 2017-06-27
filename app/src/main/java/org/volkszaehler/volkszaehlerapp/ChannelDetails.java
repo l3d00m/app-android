@@ -17,12 +17,13 @@ import android.widget.Toast;
 
 import org.volkszaehler.volkszaehlerapp.generic.Channel;
 import org.volkszaehler.volkszaehlerapp.generic.Entity;
-import org.volkszaehler.volkszaehlerapp.presenter.ChannelDetailsPresenter;
+import org.volkszaehler.volkszaehlerapp.presenter.MainActivityPresenter;
 
 import java.text.DateFormat;
+import java.util.List;
 import java.util.Locale;
 
-public class ChannelDetails extends AppCompatActivity {
+public class ChannelDetails extends AppCompatActivity implements PresenterActivityInterface {
 
     private Context myContext;
     private boolean strom = false;
@@ -30,7 +31,7 @@ public class ChannelDetails extends AppCompatActivity {
     private boolean water = false;
     private Channel channel;
     private Entity entity;
-    private ChannelDetailsPresenter presenter;
+    private MainActivityPresenter presenter;
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,7 +47,7 @@ public class ChannelDetails extends AppCompatActivity {
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(ChannelDetails.this);
         String url = sharedPref.getString("volkszaehlerURL", "") + "/";
-        presenter = new ChannelDetailsPresenter(url, this);
+        presenter = new MainActivityPresenter(url, this, this.getBaseContext());
 
         Intent i = getIntent();
         channel = MainActivity.getChannel(i.getStringExtra(Tools.TAG_UUID));
@@ -122,22 +123,16 @@ public class ChannelDetails extends AppCompatActivity {
 
         ((TextView) findViewById(R.id.textViewUUID)).setText(channel.getUuid());
         ((TextView) findViewById(R.id.textViewType)).setText(entity.getFriendlyName());
-        /*String childUUIDs = Tools.getPropertyOfChannel(myContext, mUUID, Tools.TAG_CHUILDUUIDS);
-        String childrenNames = "";
-        if (null != childUUIDs && !"".equals(childUUIDs)) {
-            if (childUUIDs.contains("|")) {
-                String[] children = (childUUIDs.split("\\|"));
 
-                for (String child : children) {
-                    childrenNames = childrenNames + "\n" + Tools.getPropertyOfChannel(myContext, child, Tools.TAG_TITLE);
-                }
-            } else {
-                childrenNames = Tools.getPropertyOfChannel(myContext, childUUIDs, Tools.TAG_TITLE);
+        String childrenNames = "";
+        if (channel.getChildNames() != null && !channel.getChildNames().isEmpty()) {
+            for (String child : channel.getChildNames()) {
+                childrenNames = childrenNames + "\n" + child;
             }
             ((TextView) findViewById(R.id.textViewChildren)).setText(childrenNames);
         } else {
             ((TextView) findViewById(R.id.textViewTitleChildren)).setText("");
-        }*/ // fixme
+        }
 
         if (channel.getInitialConsumption() > 0) {
             presenter.loadTotalConsumption(channel.getUuid());
@@ -224,14 +219,13 @@ public class ChannelDetails extends AppCompatActivity {
                 }
                 return (true);
             case R.id.restore_settings:
-
                 boolean restored = Tools.loadFile(getApplicationContext());
                 if (restored) {
                     Toast.makeText(this, R.string.restored, Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(this, R.string.notrestored, Toast.LENGTH_SHORT).show();
                 }
-                return (true);
+                return true;
 
 
             case R.id.about:
@@ -243,8 +237,32 @@ public class ChannelDetails extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void loadingEntitiesSuccess(List<Entity> entities) {
+        // stub
+    }
 
-    public void totalConsumptionLoaded(double consumption) {
+    @Override
+    public void adapterFailedCallback(String errorMessage) {
+        new AlertDialog.Builder(ChannelDetails.this)
+                .setTitle(getString(R.string.Error))
+                .setMessage(errorMessage)
+                .setNeutralButton(getString(R.string.Close), null)
+                .show();
+    }
+
+    @Override
+    public void loadingChannelInfosSuccess(List<Channel> channels) {
+        // stub
+    }
+
+    @Override
+    public void loadingChannelValuesSuccess(List<Channel> values) {
+        // stub
+    }
+
+    @Override
+    public void loadingTotalConsumptionSuccess(Double totalConsumption) {
         String consumptionString = "";
         String unit = entity.getUnit();
         if ("gas".equals(channel.getType())) {
@@ -255,21 +273,12 @@ public class ChannelDetails extends AppCompatActivity {
             unit = "k" + unit + "h";
         }
         if (gas) {
-            consumptionString = Tools.f000.format(consumption + channel.getInitialConsumption());
+            consumptionString = Tools.f000.format(totalConsumption + channel.getInitialConsumption());
         } else if (strom) {
-            consumptionString = String.valueOf(Tools.f000.format(consumption + channel.getInitialConsumption()));
+            consumptionString = String.valueOf(Tools.f000.format(totalConsumption + channel.getInitialConsumption()));
         } else if (water) {
-            consumptionString = String.valueOf(Tools.f0.format(consumption + channel.getInitialConsumption()));
+            consumptionString = String.valueOf(Tools.f0.format(totalConsumption + channel.getInitialConsumption()));
         }
         ((TextView) findViewById(R.id.textViewGesamt)).setText(consumptionString + " " + unit);
     }
-
-    public void presenterFailedCallback(String fehlerAusgabe) {
-        new AlertDialog.Builder(ChannelDetails.this)
-                .setTitle(getString(R.string.Error))
-                .setMessage(fehlerAusgabe)
-                .setNeutralButton(getString(R.string.Close), null)
-                .show();
-    }
-
 }

@@ -90,15 +90,12 @@ public class ChartDetails extends Activity {
         myContext = this;
         Button select = (Button) findViewById(R.id.buttonDate);
 
-        select.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent dateTimeSelector = new Intent(ChartDetails.this, DateTimeSelector.class);
-                dateTimeSelector.putExtra("From", (long) from);
-                dateTimeSelector.putExtra("To", (long) to);
-                dateTimeSelector.putExtra("MUUID", mUUID);
-                startActivity(dateTimeSelector);
-            }
+        select.setOnClickListener(view -> {
+            Intent dateTimeSelector = new Intent(ChartDetails.this, DateTimeSelector.class);
+            dateTimeSelector.putExtra("From", (long) from);
+            dateTimeSelector.putExtra("To", (long) to);
+            dateTimeSelector.putExtra("MUUID", mUUID);
+            startActivity(dateTimeSelector);
         });
 
         Intent inte = this.getIntent();
@@ -634,7 +631,6 @@ public class ChartDetails extends Activity {
             if (!(from == keepFrom && to == keepTo)) {
 
                 // Creating service handler class instance
-                ServiceHandler sh = new ServiceHandler();
                 SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(ChartDetails.this);
                 String url = sharedPref.getString("volkszaehlerURL", "");
                 String tuples = sharedPref.getString("Tuples", "1000");
@@ -699,9 +695,9 @@ public class ChartDetails extends Activity {
 
                 // Making a request to url and getting response
                 if (uname.equals("")) {
-                    jsonStr = sh.makeServiceCall(url, ServiceHandler.GET);
+                    //jsonStr = sh.makeServiceCall(url, ServiceHandler.GET);
                 } else {
-                    jsonStr = sh.makeServiceCall(url, ServiceHandler.GET, null, uname, pwd);
+                    //jsonStr = sh.makeServiceCall(url, ServiceHandler.GET, null, uname, pwd);
                 }
             }
 

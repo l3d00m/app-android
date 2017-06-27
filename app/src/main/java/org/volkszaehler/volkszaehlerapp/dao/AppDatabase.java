@@ -6,7 +6,7 @@ import android.arch.persistence.room.RoomDatabase;
 import org.volkszaehler.volkszaehlerapp.generic.Channel;
 import org.volkszaehler.volkszaehlerapp.generic.Entity;
 
-@Database(entities = {Entity.class, Channel.class}, version = 4)
+@Database(entities = {Entity.class, Channel.class}, version = 5)
 public abstract class AppDatabase extends RoomDatabase {
     public abstract EntityDao entityDao();
 

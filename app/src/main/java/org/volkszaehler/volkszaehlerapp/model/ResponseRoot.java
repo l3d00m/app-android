@@ -13,7 +13,7 @@ public class ResponseRoot {
     @Nullable
     public List<ChannelValuesReponse> values;
 
-    @SerializedName(value = "entities", alternate = {"channels"})
+    @SerializedName("entities")
     @Nullable
     public List<ChannelMetaResponse> infos;
 

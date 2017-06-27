@@ -5,7 +5,9 @@ import android.arch.persistence.room.PrimaryKey;
 
 import org.volkszaehler.volkszaehlerapp.model.ChannelMetaResponse.Style;
 
-@android.arch.persistence.room.Entity
+import java.util.List;
+
+@android.arch.persistence.room.Entity(tableName = "channel")
 public class Channel {
     // Meta Info
     @PrimaryKey
@@ -20,6 +22,8 @@ public class Channel {
     private double cost;
     private double resolution;
     private double initialConsumption;
+    @Ignore
+    private List<String> childNames;
 
     // ChannelValues
     @Ignore
@@ -179,5 +183,13 @@ public class Channel {
 
     public void setInitialConsumption(double initialConsumption) {
         this.initialConsumption = initialConsumption;
+    }
+
+    public List<String> getChildNames() {
+        return childNames;
+    }
+
+    public void setChildNames(List<String> childNames) {
+        this.childNames = childNames;
     }
 }

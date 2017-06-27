@@ -66,7 +66,7 @@
     <string name="to">to</string>
     <string name="autoReloadSummary">Automatic Reload when showing List</string>
     <string name="autoReloadTitle">Automatic Reload</string>
-    <string name="ChildrenTitle">included Channels</string>
+    <string name="ChildrenTitle">Included Channels</string>
     <string name="VolkszaehlerCat_titleReloadSettings">Reload Settings</string>
     <string name="FromGreaterTo">\'From\' must not be later than \'To\'!</string>
     <string name="From"> From</string>

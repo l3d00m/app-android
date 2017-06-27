@@ -22,7 +22,7 @@ public interface VolkszaehlerApiInterface {
                                                   @Query("uuid[]") String uuids,
                                                   @Header("Authorization") String auth);
 
-    @GET("channel.json")
+    @GET("entity.json")
     Observable<ResponseRoot> getChannelsMeta(@Query("uuid[]") List<String> uuids,
                                              @Header("Authorization") String auth);
 

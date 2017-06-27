@@ -34,9 +34,9 @@
     <string name="basicAuthentication">Login-Information für Basic Authentication</string>
     <string name="usernameSummary">Nutzername eingeben, leer lassen wenn nicht benötigt</string>
     <string name="username">Nutzername</string>
-    <string name="password">Paßwort</string>
+    <string name="password">Passwort</string>
     <string name="Chart">Grafik</string>
-    <string name="passwordSumary">Paßwort eingeben</string>
+    <string name="passwordSumary">Passwort eingeben</string>
     <string name="ChartDay">Letzte 24 Stunden</string>
     <string name="ChartHour">Letzte Stunde</string>
     <string name="buttonLast">&lt;&lt;</string>

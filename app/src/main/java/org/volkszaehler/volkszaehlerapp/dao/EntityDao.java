@@ -1,7 +1,6 @@
 package org.volkszaehler.volkszaehlerapp.dao;
 
 import android.arch.persistence.room.Dao;
-import android.arch.persistence.room.Delete;
 import android.arch.persistence.room.Insert;
 import android.arch.persistence.room.Query;
 
@@ -21,6 +20,6 @@ public interface EntityDao {
     @Insert(onConflict = REPLACE)
     void insertAll(List<Entity> entities);
 
-    @Delete
-    void delete(Entity entity);
+    @Query("DELETE FROM entity")
+    void nukeTable();
 }

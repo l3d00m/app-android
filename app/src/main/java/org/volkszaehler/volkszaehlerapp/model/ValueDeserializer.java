@@ -1,12 +1,10 @@
-package org.volkszaehler.volkszaehlerapp;
+package org.volkszaehler.volkszaehlerapp.model;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
-
-import org.volkszaehler.volkszaehlerapp.model.ResponseValue;
 
 import java.lang.reflect.Type;
 

@@ -3,7 +3,7 @@ package org.volkszaehler.volkszaehlerapp.generic;
 import android.arch.persistence.room.ColumnInfo;
 import android.arch.persistence.room.PrimaryKey;
 
-@android.arch.persistence.room.Entity
+@android.arch.persistence.room.Entity(tableName = "entity")
 public class Entity {
     @PrimaryKey
     private String name;
