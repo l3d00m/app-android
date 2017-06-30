@@ -25,15 +25,14 @@ import java.util.List;
 
 import io.reactivex.schedulers.Schedulers;
 
-import static android.preference.Preference.DEFAULT_ORDER;
+import static org.volkszaehler.volkszaehlerapp.Preferences.RESULT_RELOAD;
 
 @SuppressWarnings("Convert2streamapi")
 public class MainActivity extends AppCompatActivity implements PresenterActivityInterface {
-    private final int SETTINGS_REQUEST = 63;
-    // Hashmaps for ListView
+    private static final int SETTINGS_REQUEST = 63;
     private static final List<Channel> channels = new ArrayList<>();
     private static final List<Entity> entities = new ArrayList<>();
-    private boolean bAutoReload = false;
+
     private MainActivityPresenter presenter;
     private SwipeRefreshLayout refreshLayout;
     private CustomAdapter adapter;
@@ -57,19 +56,20 @@ public class MainActivity extends AppCompatActivity implements PresenterActivity
 
         refreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipeContainer);
         refreshLayout.setOnRefreshListener(() -> {
-            if (presenter != null) presenter.loadChannelData(channels);
+            if (presenter != null) presenter.loadChannelData(channels, false);
             if (refreshLayout != null) refreshLayout.setRefreshing(true);
         });
-        setupPresenter();
     }
 
-    private void setupPresenter() {
+    private void startLoading() {
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
         String url = sharedPref.getString("volkszaehlerURL", "");
         if (!url.isEmpty()) {
             presenter = new MainActivityPresenter(url + "/", this, this.getBaseContext());
             loadEntitiesFromDb();
             refreshLayout.setRefreshing(true);
+        } else {
+            // todo display info to set it
         }
     }
 
@@ -81,9 +81,10 @@ public class MainActivity extends AppCompatActivity implements PresenterActivity
                     if (c.isEmpty()) {
                         presenter.loadEntityDefinitions();
                     } else {
+                        entities.clear();
                         entities.addAll(c);
-                        loadChannelMetaFromDb();
                     }
+                    loadChannelMetaFromDb();
                 });
     }
 
@@ -113,10 +114,13 @@ public class MainActivity extends AppCompatActivity implements PresenterActivity
                 .subscribeOn(Schedulers.io())
                 .subscribe((c) -> {
                     if (c.isEmpty()) {
-                        presenter.loadChannelMeta(getChannelsToShow());
+                        // todo display an info to select channels in settings
                     } else {
+                        channels.clear();
                         channels.addAll(c);
-                        presenter.loadChannelData(channels);
+                        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+                        boolean shouldAutoReload = sharedPref.getBoolean("autoReload", false);
+                        presenter.loadChannelData(channels, shouldAutoReload);
                     }
                 });
     }
@@ -129,44 +133,28 @@ public class MainActivity extends AppCompatActivity implements PresenterActivity
         recyclerView.setAdapter(adapter);
     }
 
-    private List<String> getChannelsToShow() {
-        List<String> channels = new ArrayList<>();
-        // adding uuids that are checked in preferences
-        for (String preference : PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getAll().keySet()) {
-            // assume its a UUID of a channel
-            if (preference.contains("-") && preference.length() == 36) {
-                // is preference checked?
-                if (PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getBoolean(preference, false)) {
-                    channels.add(preference);
-                }
-            }
-        }
-        return channels;
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == SETTINGS_REQUEST) {
-            if (resultCode == DEFAULT_ORDER) {
-                if (presenter != null) presenter.clearRxSubscriptions();
+            if (resultCode == RESULT_RELOAD) {
+                if (presenter != null) presenter.stopAllLoading();
                 channels.clear();
                 entities.clear();
-                setupPresenter();
+                startLoading();
             }
         }
     }
 
     @Override
     protected void onPause() {
-        if (presenter != null) presenter.clearRxSubscriptions();
+        if (presenter != null) presenter.stopAllLoading();
         super.onPause();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-        //fixme bAutoReload = sharedPref.getBoolean("autoReload", false);
+        startLoading();
     }
 
     @Override
@@ -223,13 +211,12 @@ public class MainActivity extends AppCompatActivity implements PresenterActivity
 
     @Override
     public void loadingChannelInfosSuccess(List<Channel> channels) {
-        if (presenter != null) presenter.loadChannelData(channels);
+        // stub
     }
 
     @Override
     public void loadingEntitiesSuccess(List<Entity> entities) {
         MainActivity.entities.addAll(entities);
-        if (presenter != null) presenter.loadChannelMeta(getChannelsToShow());
         DatabaseHolder.getInstance(this).entityDao().insertAll(entities);
     }
 

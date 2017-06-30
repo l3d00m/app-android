@@ -4,13 +4,13 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -36,6 +36,9 @@ import org.achartengine.renderer.XYSeriesRenderer;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.volkszaehler.volkszaehlerapp.generic.Channel;
+import org.volkszaehler.volkszaehlerapp.generic.Entity;
+import org.volkszaehler.volkszaehlerapp.presenter.MainActivityPresenter;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -47,7 +50,7 @@ import java.util.Locale;
 import java.util.Map;
 
 
-public class ChartDetails extends Activity {
+public class ChartDetails extends AppCompatActivity implements PresenterActivityInterface {
 
     private static final int MIN_CLICK_DURATION = 1000;
     private final XYMultipleSeriesDataset dataset = new XYMultipleSeriesDataset();
@@ -83,6 +86,7 @@ public class ChartDetails extends Activity {
     };
     private long startClickTime;
     private boolean longClickActive = false;
+    private MainActivityPresenter presenter;
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -120,7 +124,16 @@ public class ChartDetails extends Activity {
         dateFormat = android.text.format.DateFormat.getDateFormat(getApplicationContext());
         timeFormat = android.text.format.DateFormat.getTimeFormat(getApplicationContext());
 
-        new GetChannelsDetails().execute();
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(ChartDetails.this);
+        String url = sharedPref.getString("volkszaehlerURL", "") + "/";
+        presenter = new MainActivityPresenter(url, this, this.getBaseContext());
+
+        presenter.loadAllChannels();
+        Integer tuples = Integer.valueOf(sharedPref.getString("Tuples", "1000"));
+
+        // use VZ-Aggregation for faster response if more than one week
+        String group = to - from > 604800000 ? "hour" : null;
+        presenter.loadValuesTimespan(mUUID, from, to, tuples, group);
     }
 
     private void prepareChart(String uUID) {
@@ -359,55 +372,45 @@ public class ChartDetails extends Activity {
         AlertDialog.Builder builder = new AlertDialog.Builder(myContext);
         builder.setTitle(R.string.MultipleGraphsPopupTitel);
 
-        builder.setMultiChoiceItems(channelNames.toArray(new CharSequence[channelNames.size()]), alreadyChecked, new DialogInterface.OnMultiChoiceClickListener() {
-
-            @Override
-            public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-                //Here you add or remove the items from the list selectedItems. That list will be the result of the user selection.
-                if (isChecked) {
-                    selectedItems.set(which, 1);
-                } else {
-                    selectedItems.set(which, 0);
-                }
+        builder.setMultiChoiceItems(channelNames.toArray(new CharSequence[channelNames.size()]), alreadyChecked, (dialog, which, isChecked) -> {
+            //Here you add or remove the items from the list selectedItems. That list will be the result of the user selection.
+            if (isChecked) {
+                selectedItems.set(which, 1);
+            } else {
+                selectedItems.set(which, 0);
             }
         });
 
 
-        builder.setPositiveButton(R.string.MultipleGraphsPopupDone, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                int indexItem = 0;
-                int countItem = 0;
-                //add UUIDs to mUUID
-                mUUID = "";
-                for (int j = 0; j < selectedItems.size(); j++) {
-                    indexItem = (int) selectedItems.get(j);
-                    if (1 == indexItem) {
-                        for (String UUID : channelsToRequest.keySet()) {
-                            if (j == countItem) {
-                                if ("".equals(mUUID)) {
-                                    mUUID = UUID;
-                                } else {
-                                    mUUID = mUUID + "|" + UUID;
-                                }
+        builder.setPositiveButton(R.string.MultipleGraphsPopupDone, (dialog, which) -> {
+            int indexItem = 0;
+            int countItem = 0;
+            //add UUIDs to mUUID
+            mUUID = "";
+            for (int j = 0; j < selectedItems.size(); j++) {
+                indexItem = (int) selectedItems.get(j);
+                if (1 == indexItem) {
+                    for (String UUID : channelsToRequest.keySet()) {
+                        if (j == countItem) {
+                            if ("".equals(mUUID)) {
+                                mUUID = UUID;
+                            } else {
+                                mUUID = mUUID + "|" + UUID;
                             }
-                            countItem++;
                         }
+                        countItem++;
                     }
-                    countItem = 0;
                 }
-                //force a reload
-                from++;
-                new GetChannelsDetails().execute();
+                countItem = 0;
             }
+            //force a reload
+            from++;
+            new GetChannelsDetails().execute();
         });
 
-        builder.setNegativeButton(R.string.MultipleGraphsPopupCancel, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-                //Do something else if you want
-            }
+        builder.setNegativeButton(R.string.MultipleGraphsPopupCancel, (dialog, which) -> {
+            dialog.dismiss();
+            //Do something else if you want
         });
 
         builder.create();
@@ -607,6 +610,38 @@ public class ChartDetails extends Activity {
         // outState.putDouble("MCost", mCost);
     }
 
+    @Override
+    public void loadingEntitiesSuccess(List<Entity> entities) {
+        // stub
+    }
+
+    @Override
+    public void adapterFailedCallback(String errorMessage) {
+        new AlertDialog.Builder(ChartDetails.this)
+                .setTitle(getString(R.string.Error))
+                .setMessage(errorMessage)
+                .setNeutralButton(getString(R.string.Close), null)
+                .show();
+    }
+
+    @Override
+    public void loadingChannelInfosSuccess(List<Channel> channels) {
+        // stub
+    }
+
+    @Override
+    public void loadingChannelValuesSuccess(List<Channel> values) {
+        mChartView = null;
+        keepFrom = from;
+        keepTo = to;
+        createChart();
+    }
+
+    @Override
+    public void loadingTotalConsumptionSuccess(Double totalConsumption) {
+        // stub
+    }
+
     private class GetChannelsDetails extends AsyncTask<Void, Void, String> {
         JSONArray werte = null;
         boolean JSONFehler = false;
@@ -744,12 +779,9 @@ public class ChartDetails extends Activity {
                 // handle Exception
             }
             if (JSONFehler) {
-                new AlertDialog.Builder(ChartDetails.this).setTitle(getString(R.string.Error)).setMessage(fehlerAusgabe).setNeutralButton(getString(R.string.Close), null).show();
+
             } else {
-                mChartView = null;
-                keepFrom = from;
-                keepTo = to;
-                createChart();
+
             }
 
         }

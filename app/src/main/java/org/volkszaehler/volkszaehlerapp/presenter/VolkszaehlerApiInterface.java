@@ -6,29 +6,26 @@ import java.util.List;
 
 import io.reactivex.Observable;
 import retrofit2.http.GET;
-import retrofit2.http.Header;
 import retrofit2.http.Query;
 
 public interface VolkszaehlerApiInterface {
     @GET("data.json")
     Observable<ResponseRoot> getChannelsData(@Query("from") String from,
-                                             @Query("uuid[]") List<String> uuids,
-                                             @Header("Authorization") String auth);
+                                             @Query("uuid[]") List<String> uuids);
 
     @GET("data.json")
-    Observable<ResponseRoot> getSingleChannelData(@Query("from") String from,
-                                                  @Query("tuples") String tuples,
+    Observable<ResponseRoot> getSingleChannelData(@Query("from") Double from,
+                                                  @Query("to") Double to,
+                                                  @Query("tuples") Integer tuples,
                                                   @Query("group") String group,
-                                                  @Query("uuid[]") String uuids,
-                                                  @Header("Authorization") String auth);
+                                                  @Query("uuid[]") String uuids);
 
     @GET("entity.json")
-    Observable<ResponseRoot> getChannelsMeta(@Query("uuid[]") List<String> uuids,
-                                             @Header("Authorization") String auth);
+    Observable<ResponseRoot> getChannelsMeta(@Query("uuid[]") List<String> uuids);
 
     @GET("entity.json")
-    Observable<ResponseRoot> getAllChannels(@Header("Authorization") String auth);
+    Observable<ResponseRoot> getAllChannels();
 
     @GET("capabilities/definitions/entities.json")
-    Observable<ResponseRoot> getChannelDefinitions(@Header("Authorization") String auth);
+    Observable<ResponseRoot> getChannelDefinitions();
 }

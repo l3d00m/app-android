@@ -20,15 +20,8 @@ import io.reactivex.Single;
 import io.reactivex.schedulers.Schedulers;
 
 public class Preferences extends PreferenceActivity implements PresenterActivityInterface {
-    private static final int RESULT_RELOAD = 47;
-    // URL to get contacts JSON
-    private static String url = "http://demo.volkszaehler.org/middleware.php/entity.json";
-    private static String uname;
-    private static String pwd;
-    private static String tuples;
-    private static String privateChannelString;
+    public static final int RESULT_RELOAD = 47;
     private List<Channel> channels = new ArrayList<>();
-    private List<Entity> entities = new ArrayList<>();
     private MainActivityPresenter presenter;
 
     @Override
@@ -39,16 +32,15 @@ public class Preferences extends PreferenceActivity implements PresenterActivity
         getPreferenceManager().findPreference("volkszaehlerURL")
                 .setOnPreferenceChangeListener((pref, newValue) -> {
                     String url = (String) newValue;
-                    if (!url.isEmpty()) {
-                        presenter = new MainActivityPresenter(url + "/", this, this.getBaseContext());
-                    }
+                    presenter.changeBaseUrl(url + "/");
+                    removeUuidsFromPrefs();
                     return true;
                 });
         Preference button = getPreferenceManager().findPreference("getChannelsButton");
         if (button != null) {
             button.setOnPreferenceClickListener(pref -> {
                 // call Channels from VZ installation
-                presenter.loadAllChannels();
+                if (presenter != null) presenter.loadAllChannels();
                 return true;
             });
         }
@@ -59,7 +51,7 @@ public class Preferences extends PreferenceActivity implements PresenterActivity
         }
     }
 
-    private boolean isUuuidPrefEnabled(String uuid) {
+    private boolean isUuidPrefEnabled(String uuid) {
         for (String preference : PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getAll().keySet()) {
             // assume its a UUID of a channel
             if (preference.equals(uuid)) {
@@ -89,7 +81,7 @@ public class Preferences extends PreferenceActivity implements PresenterActivity
         if (channels != null) {
             for (Channel channel : channels) {
                 CheckBoxPreference checkBoxPreference = new CheckBoxPreference(this);
-                checkBoxPreference.setChecked(isUuuidPrefEnabled(channel.getUuid()));
+                checkBoxPreference.setChecked(isUuidPrefEnabled(channel.getUuid()));
 
                 if ("group".equals(channel.getType())) {
                     checkBoxPreference.setTitle(channel.getTitle() + " " + getString(R.string.group));
@@ -110,7 +102,8 @@ public class Preferences extends PreferenceActivity implements PresenterActivity
     }
 
     @Override
-    protected void onPause() {
+    protected void onStop() {
+        if (presenter != null) presenter.stopAllLoading();
         PreferenceCategory targetCategory = (PreferenceCategory) findPreference("channel_preference_category");
         for (int i = 0; i < targetCategory.getPreferenceCount(); i++) {
             CheckBoxPreference pref = (CheckBoxPreference) targetCategory.getPreference(i);
@@ -119,15 +112,20 @@ public class Preferences extends PreferenceActivity implements PresenterActivity
                         .edit()
                         .putBoolean(pref.getKey(), true)
                         .apply();
+                for (Channel channel : channels) {
+                    if (channel.getUuid().equals(pref.getKey())) {
+                        Single.just("")
+                                .observeOn(Schedulers.io())
+                                .subscribe(ign -> DatabaseHolder.getInstance(this).channelMetaDao().insert(channel));
+                    }
+                }
             }
         }
-        super.onPause();
+        super.onStop();
     }
 
     @Override
     public void loadingEntitiesSuccess(List<Entity> entities) {
-        DatabaseHolder.getInstance(this).entityDao().nukeTable();
-        DatabaseHolder.getInstance(this).entityDao().insertAll(entities);
         Single.just("")
                 .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.io())
@@ -149,10 +147,7 @@ public class Preferences extends PreferenceActivity implements PresenterActivity
         Single.just("")
                 .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.io())
-                .subscribe(ign -> {
-                    DatabaseHolder.getInstance(this).channelMetaDao().nukeTable();
-                    DatabaseHolder.getInstance(this).channelMetaDao().insertAll(channels);
-                });
+                .subscribe(ign -> DatabaseHolder.getInstance(this).channelMetaDao().nukeTable());
     }
 
     @Override

@@ -22,4 +22,7 @@ public interface ChannelDao {
 
     @Query("DELETE FROM channel")
     void nukeTable();
+
+    @Insert(onConflict = REPLACE)
+    void insert(Channel channel);
 }

@@ -10,11 +10,10 @@ import com.google.gson.GsonBuilder;
 
 import org.volkszaehler.volkszaehlerapp.BuildConfig;
 import org.volkszaehler.volkszaehlerapp.PresenterActivityInterface;
-import org.volkszaehler.volkszaehlerapp.model.ValueDeserializer;
 import org.volkszaehler.volkszaehlerapp.generic.Channel;
 import org.volkszaehler.volkszaehlerapp.generic.Entity;
-import org.volkszaehler.volkszaehlerapp.model.ResponseRoot;
 import org.volkszaehler.volkszaehlerapp.model.ResponseValue;
+import org.volkszaehler.volkszaehlerapp.model.ValueDeserializer;
 import org.volkszaehler.volkszaehlerapp.stetho.StethoHelper;
 
 import java.util.ArrayList;
@@ -23,12 +22,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -40,13 +41,20 @@ public class MainActivityPresenter {
     private PresenterActivityInterface callbackInterface;
     private Context context;
     private CompositeDisposable disposables = new CompositeDisposable();
+    private Retrofit retrofit;
 
     public MainActivityPresenter(String baseUrl, PresenterActivityInterface callbackInterface, Context context) {
         this.callbackInterface = callbackInterface;
         this.context = context;
 
-        // Use a custom client to allow unsafe Https and debugging with Stetho
-        OkHttpClient.Builder clientBuilder = getUnsafeOkHttpClientBuilder();
+        // Use a custom client to allow unsafe Https and debugging with Stetho and auto add header
+        OkHttpClient.Builder clientBuilder = getUnsafeOkHttpClientBuilder()
+                .addInterceptor(chain -> {
+                    Request newRequest = chain.request().newBuilder()
+                            .addHeader("Authorization", getAuth(context))
+                            .build();
+                    return chain.proceed(newRequest);
+                });
         if (BuildConfig.DEBUG) {
             clientBuilder = new StethoHelper().configureInterceptor(clientBuilder);
         }
@@ -58,21 +66,27 @@ public class MainActivityPresenter {
                 .create();
         RxJava2CallAdapterFactory rxAdapter = RxJava2CallAdapterFactory.createWithScheduler(Schedulers.io());
         // Create a retrofit instance
-        Retrofit retrofit = new Retrofit.Builder()
+        retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create(gson))
                 .addCallAdapterFactory(rxAdapter)
                 .build();
         apiInterface = retrofit.create(VolkszaehlerApiInterface.class);
-
-
     }
 
-    public void clearRxSubscriptions() {
+    public void changeBaseUrl(String url) {
+        retrofit = retrofit
+                .newBuilder()
+                .baseUrl(url)
+                .build();
+        apiInterface = retrofit.create(VolkszaehlerApiInterface.class);
+    }
+
+    public void stopAllLoading() {
         disposables.clear();
     }
-
+    
     private static String getAuth(Context context) {
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
         String uname = sharedPref.getString("username", "");
@@ -83,12 +97,12 @@ public class MainActivityPresenter {
         return "";
     }
 
-    public void loadChannelData(List<Channel> channels) {
+    public void loadChannelData(List<Channel> channels, boolean autoReload) {
         List<String> uuidStrings = new ArrayList<>();
         for (Channel info : channels) {
             uuidStrings.add(info.getUuid());
         }
-        disposables.add(apiInterface.getChannelsData("now", uuidStrings, getAuth(context))
+        disposables.add(apiInterface.getChannelsData("now", uuidStrings)
                 // Do the processing in background (async)
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io())
@@ -110,11 +124,19 @@ public class MainActivityPresenter {
                     }
                     return Observable.empty();
                 })
+                .distinct()
                 .toList()
-                //fixme .repeatWhen(completed -> completed.delay(3, TimeUnit.SECONDS))
                 // Switch back to main Thread for calling the MainActivity methods
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(AndroidSchedulers.mainThread())
+                .repeatWhen(completed -> {
+                    if (autoReload) {
+                        return completed.delay(2, TimeUnit.SECONDS);
+                    } else {
+                        return completed.takeWhile(v -> false);
+                    }
+
+                })
                 .subscribe(channelInfos -> callbackInterface.loadingChannelValuesSuccess(channelInfos),
                         e -> {
                             callbackInterface.adapterFailedCallback(e.getMessage());
@@ -123,16 +145,8 @@ public class MainActivityPresenter {
 
     }
 
-    public void loadChannelMeta(List<String> uuids) {
-        channelMetaProccessing(apiInterface.getChannelsMeta(uuids, getAuth(context)));
-    }
-
     public void loadAllChannels() {
-        channelMetaProccessing(apiInterface.getAllChannels(getAuth(context)));
-    }
-
-    private void channelMetaProccessing(Observable<ResponseRoot> observable) {
-        disposables.add(observable
+        disposables.add(apiInterface.getAllChannels()
                 .observeOn(Schedulers.io())
                 // Do the processing in background (async)
                 .subscribeOn(Schedulers.io())
@@ -153,6 +167,7 @@ public class MainActivityPresenter {
                     channel.setDescription(response.description);
                     return channel;
                 })
+                .distinct()
                 .toList()
                 // Switch back to main Thread for calling the MainActivity methods
                 .observeOn(AndroidSchedulers.mainThread())
@@ -179,7 +194,7 @@ public class MainActivityPresenter {
     }
 
     public void loadEntityDefinitions() {
-        disposables.add(apiInterface.getChannelDefinitions(getAuth(context))
+        disposables.add(apiInterface.getChannelDefinitions()
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io())
                 .map(root -> root.capabilities)
@@ -201,8 +216,21 @@ public class MainActivityPresenter {
                         }));
     }
 
+    public void loadValuesTimespan(String uuid, Double from, Double to, Integer tuples, String group) {
+        apiInterface.getSingleChannelData(from, to, tuples, group, uuid)
+                .flatMapIterable(root -> root.values)
+                .flatMapIterable(values -> values.werte)
+                .map(werte -> werte.value)
+                .toList()
+                .subscribe(l -> {
+                            //todo
+                        },
+                        e -> callbackInterface.adapterFailedCallback(e.getMessage())
+                );
+    }
+
     public void loadTotalConsumption(String uuid) {
-        apiInterface.getSingleChannelData("0", "1", "day", uuid, getAuth(context))
+        apiInterface.getSingleChannelData(0D, null, 1, "day", uuid)
                 .flatMapIterable(root -> root.values)
                 .flatMapIterable(values -> values.werte)
                 .map(werte -> werte.value)

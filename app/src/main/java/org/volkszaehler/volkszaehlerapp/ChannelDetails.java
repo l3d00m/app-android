@@ -45,10 +45,6 @@ public class ChannelDetails extends AppCompatActivity implements PresenterActivi
 
         myContext = this;
 
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(ChannelDetails.this);
-        String url = sharedPref.getString("volkszaehlerURL", "") + "/";
-        presenter = new MainActivityPresenter(url, this, this.getBaseContext());
-
         Intent i = getIntent();
         channel = MainActivity.getChannel(i.getStringExtra(Tools.TAG_UUID));
         if (channel == null) finish();
@@ -135,6 +131,9 @@ public class ChannelDetails extends AppCompatActivity implements PresenterActivi
         }
 
         if (channel.getInitialConsumption() > 0) {
+            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(ChannelDetails.this);
+            String url = sharedPref.getString("volkszaehlerURL", "") + "/";
+            presenter = new MainActivityPresenter(url, this, this.getBaseContext());
             presenter.loadTotalConsumption(channel.getUuid());
         } else {
             //remove consumption from dialog
@@ -235,6 +234,12 @@ public class ChannelDetails extends AppCompatActivity implements PresenterActivi
                 break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onStop() {
+        if (presenter != null) presenter.stopAllLoading();
+        super.onStop();
     }
 
     @Override
